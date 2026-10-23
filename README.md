@@ -12,6 +12,11 @@ The workflow processes hourly timestamps and partitions ET into canopy transpira
 ├── requirements.txt
 ├── ptjpl_spatial.py
 ├── run_spatial.py
+├── data_preparation/
+│   ├── README.md
+│   ├── requirements.txt
+│   ├── prepare_topt.py
+│   └── calculate_topt.py
 └── data/
     └── land_index/
         ├── ahi_land_E_index.npz
@@ -30,37 +35,39 @@ python -m pip install -r requirements.txt
 
 ## Running the model
 
-Use `--year` to select the processing year and `--region e` or `--region w` to select the east or west partition. `--input-root` points to the input directory for that partition.
+Specify the processing year, domain, input directory, and optimum-temperature field. For example:
 
 ```bash
-python run_spatial.py --year 2018 --region e --input-root /path/to/FD_E_inputs
-python run_spatial.py --year 2019 --region e --input-root /path/to/FD_E_inputs
-python run_spatial.py --year 2018 --region w --input-root /path/to/FD_W_inputs
-python run_spatial.py --year 2019 --region w --input-root /path/to/FD_W_inputs
+python run_spatial.py \
+    --year 2018 \
+    --region e \
+    --input-root /path/to/FD_E_inputs \
+    --topt /path/to/topt.npy \
+    --output /path/to/output
 ```
 
-The year is not limited to 2018 and 2019; other years use the same input layout.
+- `--year`: processing year.
+- `--region`: `e` for the east partition or `w` for the west partition.
+- `--input-root`: input directory for the selected partition.
+- `--topt`: optimum-temperature NPY file for the run; required.
+- `--output`: output directory; optional.
 
-To process one hour:
+Without a time range, the selected calendar year is processed. To process one hour:
 
 ```bash
-python run_spatial.py --year 2018 --region e \
+python run_spatial.py \
+    --year 2018 \
+    --region e \
     --input-root /path/to/FD_E_inputs \
+    --topt /path/to/topt.npy \
     --start 201801010300 \
     --end 201801010400 \
     --output /path/to/output
 ```
 
-Times are UTC, on whole hours. The start is inclusive and the end is exclusive. Without a time range, the selected calendar year is processed.
+Times are UTC, on whole hours. The start is inclusive and the end is exclusive.
 
 LST uses AHI only by default. Add `--fill-lst-era5` to fill missing or zero AHI LST with ERA5. ERA5 LST files are required only when this option is enabled. Use a separate output directory for each LST mode.
-
-```bash
-python run_spatial.py --year 2018 --region e \
-    --input-root /path/to/FD_E_inputs \
-    --fill-lst-era5 \
-    --output /path/to/output_with_filling
-```
 
 Use `python run_spatial.py --help` to list all parameters.
 
@@ -70,7 +77,6 @@ Use `python run_spatial.py --help` to list all parameters.
 
 ```text
 INPUT_ROOT/
-├── 2019_t_opt.npy
 └── YEAR/
     ├── r_net_modis001/YYYYMMDDHHMM_input_TAG_rnet.npy
     ├── ta_era001/YYYYMMDDHHMM_input_TAG_ta.npy
@@ -95,7 +101,11 @@ Replace `YEAR`, `TAG`, and timestamps with actual values.
 
 Source NPY arrays store **physical values × 10000**, with `-9999` as missing data. Arrays must have identical shapes and pixel order. Both two-dimensional grids and one-dimensional land-pixel vectors are supported.
 
-The default Topt filename is `2019_t_opt.npy`, independent of `--year`. Use `--topt /path/to/topt.npy` to select the appropriate temperature field for another study or reference period.
+Topt is supplied separately through `--topt /path/to/topt.npy`. It may be stored inside or outside `--input-root` and must match the selected domain's spatial shape and pixel order.
+
+### Topt preparation
+
+The [data_preparation](data_preparation/README.md) directory contains the moving-average and Topt calculation scripts. Follow its README to generate a temperature field, then supply the resulting NPY file with `--topt /path/to/topt.npy`.
 
 ### Annual fAPAR maximum
 
@@ -109,7 +119,7 @@ The generated cache is accompanied by a `.npy.json` metadata file. It stores phy
 
 ## Outputs
 
-The default output directory beside the code is `results_REGION_YEAR`, for example `results_e_2018` or `results_w_2019`. Use `--output` to select another directory. Existing hourly files are not overwritten.
+The default output directory beside the code is `results_REGION_YEAR`, for example `results_e_2018`. Use `--output` to select another directory. Existing hourly files are not overwritten.
 
 Each hour produces `YYYYMMDDHHMM_output_TAG_et.npz`:
 

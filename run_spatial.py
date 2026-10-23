@@ -86,13 +86,16 @@ def main():
         "--input-root",
         type=Path,
         required=True,
-        help="Domain input directory containing year subdirectories and Topt",
+        help="Domain input directory containing year subdirectories",
     )
     parser.add_argument(
         "--output", type=Path, help="Default: this code directory/results_REGION_YEAR"
     )
     parser.add_argument(
-        "--topt", type=Path, help="Topt NPY path; default: INPUT_ROOT/2019_t_opt.npy"
+        "--topt",
+        type=Path,
+        required=True,
+        help="Optimum-temperature NPY selected for this year and domain",
     )
     parser.add_argument("--start", help="Inclusive UTC YYYYMMDDHHMM")
     parser.add_argument("--end", help="Exclusive UTC YYYYMMDDHHMM")
@@ -121,7 +124,7 @@ def main():
     root = configured_root.expanduser().resolve()
     tag = "fd" + args.region
     year_dir = root / str(args.year)
-    topt_path = args.topt or root / "2019_t_opt.npy"
+    topt_path = args.topt.expanduser().resolve()
     topt = load(topt_path)
     start = (
         datetime.strptime(args.start, "%Y%m%d%H%M")
